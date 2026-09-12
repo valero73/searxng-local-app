@@ -1,0 +1,47 @@
+# SearXNG Local App — private metasearch on this machine only.
+# Official image: https://github.com/searxng/searxng
+# Docs: https://docs.searxng.org/admin/installation-docker.html
+
+name: searxng-local
+
+services:
+  searxng:
+    image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
+    container_name: searxng-local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-8888}:8080"
+    environment:
+      SEARXNG_BASE_URL: ${SEARXNG_BASE_URL:-http://127.0.0.1:8888/}
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?Set SEARXNG_SECRET in .env — start.sh / start.bat does this automatically}
+      SEARXNG_LIMITER: "false"
+      SEARXNG_PUBLIC_INSTANCE: "false"
+      SEARXNG_IMAGE_PROXY: "true"
+      SEARXNG_VALKEY_URL: valkey://valkey:6379/0
+    volumes:
+      - ./core-config:/etc/searxng:Z
+    depends_on:
+      - valkey
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+
+  valkey:
+    image: docker.io/valkey/valkey:8-alpine
+    container_name: searxng-valkey
+    restart: unless-stopped
+    command: valkey-server --save 30 1 --loglevel warning
+    volumes:
+      - valkey-data:/data
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+
+volumes:
+  valkey-data:
